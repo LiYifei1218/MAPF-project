@@ -105,16 +105,20 @@ def is_constrained(curr_loc, next_loc, next_time, constraint_table):
 
 
 def push_node(open_list, node):
-    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))
+    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['time_step'], node))
 
 
 def pop_node(open_list):
-    _, _, _, curr = heapq.heappop(open_list)
+    _, _, _, _, curr = heapq.heappop(open_list)
     return curr
 
 
 def compare_nodes(n1, n2):
     """Return true is n1 is better than n2."""
+    # fix ties
+    if n1['g_val'] + n1['h_val'] == n2['g_val'] + n2['h_val']:
+        # prefer higher g-val
+        return n1['g_val'] < n2['g_val']
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
 
 
@@ -132,7 +136,14 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
 
     open_list = []
     closed_list = dict()
-    earliest_goal_timestep = 0
+
+    # the earliest timestep the agent can reach the goal
+    # if there is a goal constraint, earliest_goal_timestep is the timestep of the constraint
+    if any([c['loc'][0] == goal_loc for c in constraints]):
+        earliest_goal_timestep = min([c['timestep'] for c in constraints if c['loc'][0] == goal_loc])
+    else:
+        earliest_goal_timestep = 0
+
     h_value = h_values[start_loc]
 
     constraint_table = build_constraint_table(constraints, agent)
@@ -144,7 +155,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
         curr = pop_node(open_list)
         #############################
         # Task 1.4: Adjust the goal test condition to handle goal constraints
-        if curr['loc'] == goal_loc:
+        if curr['loc'] == goal_loc and curr['time_step'] >= earliest_goal_timestep:
             return get_path(curr)
 
         # iterate over all possible moves
@@ -170,7 +181,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
                     closed_list[(child['loc'], child['time_step'])] = child
                     push_node(open_list, child)
             else:
-                closed_list[(child['loc'])] = child
+                closed_list[(child['loc'], child['time_step'])] = child
                 push_node(open_list, child)
 
         # case for waiting in current cell
