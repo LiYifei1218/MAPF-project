@@ -128,6 +128,10 @@ def compare_nodes(n1, n2):
     return n1['g_val'] + n1['h_val'] < n2['g_val'] + n2['h_val']
 
 
+def compute_max_path_length(my_map):
+    return len(my_map) * len(my_map[0])
+
+
 def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
     """ my_map      - binary obstacle map
         start_loc   - start position
@@ -150,6 +154,9 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
     else:
         earliest_goal_timestep = 0
 
+    # 2.4 upper bound on for path length
+    max_path_length = compute_max_path_length(my_map)
+
     h_value = h_values[start_loc]
 
     constraint_table = build_constraint_table(constraints, agent)
@@ -163,6 +170,10 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
         # Task 1.4: Adjust the goal test condition to handle goal constraints
         if curr['loc'] == goal_loc and curr['time_step'] >= earliest_goal_timestep: #
             return get_path(curr)
+
+        # 2.4 terminate the search if the path length exceeds the upper bound
+        if curr['g_val'] > max_path_length:
+            return None
 
         # iterate over all possible moves
         for dir in range(5):
