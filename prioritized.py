@@ -36,10 +36,10 @@ class PrioritizedPlanningSolver(object):
         # # 1.4
         # constraints.append({'agent': 0, 'loc': [(1, 5)], 'timestep': 10})
         # 1.5 set of constraints to find collision-free paths
-        constraints.append({'agent': 1, 'loc': [(1, 3), (1, 2)], 'timestep': 2})
-        constraints.append({'agent': 1, 'loc': [(1, 3), (1, 4)], 'timestep': 2})
-        constraints.append({'agent': 1, 'loc': [(1, 3)], 'timestep': 2})
-        constraints.append({'agent': 1, 'loc': [(1, 2)], 'timestep': 2})
+        # constraints.append({'agent': 1, 'loc': [(1, 3), (1, 2)], 'timestep': 2})
+        # constraints.append({'agent': 1, 'loc': [(1, 3), (1, 4)], 'timestep': 2})
+        # constraints.append({'agent': 1, 'loc': [(1, 3)], 'timestep': 2})
+        # constraints.append({'agent': 1, 'loc': [(1, 2)], 'timestep': 2})
 
 
         for i in range(self.num_of_agents):  # Find path for each agent
@@ -55,6 +55,12 @@ class PrioritizedPlanningSolver(object):
             #            * path contains the solution path of the current (i'th) agent, e.g., [(1,1),(1,2),(1,3)]
             #            * self.num_of_agents has the number of total agents
             #            * constraints: array of constraints to consider for future A* searches
+
+            # 2.1 itreates over the path of the current agent
+            for j in range(len(path)):
+                # add constraints for all future agents
+                for k in range(i + 1, self.num_of_agents):
+                    constraints.append({'agent': k, 'loc': [path[j]], 'timestep': j})
 
 
 
