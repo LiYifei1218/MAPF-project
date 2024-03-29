@@ -60,14 +60,19 @@ class PrioritizedPlanningSolver(object):
             for j in range(len(path)):
                 # add constraints for all future agents
                 for k in range(i + 1, self.num_of_agents):
-                    constraints.append({'agent': k, 'loc': [path[j]], 'timestep': j}) # vertex constraints
+
+                    # add a permenant constraint if the current agent i is at the goal location
+                    if path[j] == self.goals[i]:
+                        constraints.append({'agent': k, 'loc': [path[j]], 'timestep': j, 'at_goal': True})
+                    else:
+                        # normal vertex constraints
+                        constraints.append({'agent': k, 'loc': [path[j]], 'timestep': j})
 
                     # for all adjacent locations (edge) in the path
                     if j < len(path) - 1:
                         # edge constraints for both directions
                         constraints.append({'agent': k, 'loc': [path[j], path[j + 1]], 'timestep': j + 1})
                         constraints.append({'agent': k, 'loc': [path[j + 1], path[j]], 'timestep': j + 1})
-
 
 
             ##############################

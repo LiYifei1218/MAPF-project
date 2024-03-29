@@ -100,6 +100,12 @@ def is_constrained(curr_loc, next_loc, next_time, constraint_table):
                 if next_loc == constraint['loc'][0]:
                     return True
 
+        # case for 2.3, constraints for all future time steps
+        # if this constraint is a goal constraint (prevents the agent from colliding with others already at the goal)
+        elif next_time > constraint['timestep']:
+            if constraint.get('at_goal', False) and next_loc == constraint['loc'][0]:
+                return True
+
     return False
 
 
@@ -138,7 +144,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
     closed_list = dict()
 
     # the earliest timestep the agent can reach the goal
-    # if there is a goal constraint, earliest_goal_timestep is the timestep of the constraint
+    # 1.4 if there is a goal constraint, earliest_goal_timestep is the timestep of the constraint
     if any([c['loc'][0] == goal_loc for c in constraints]):
         earliest_goal_timestep = min([c['timestep'] for c in constraints if c['loc'][0] == goal_loc])
     else:
@@ -155,7 +161,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
         curr = pop_node(open_list)
         #############################
         # Task 1.4: Adjust the goal test condition to handle goal constraints
-        if curr['loc'] == goal_loc and curr['time_step'] >= earliest_goal_timestep:
+        if curr['loc'] == goal_loc and curr['time_step'] >= earliest_goal_timestep: #
             return get_path(curr)
 
         # iterate over all possible moves
