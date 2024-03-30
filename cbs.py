@@ -20,6 +20,7 @@ def detect_collision(path1, path2):
         # vertex collision
         if loc1 == loc2:
             return {'loc': [loc1], 'timestep': t}
+            # return [{'loc': [loc1], 'timestep': t}]
 
         # edge collision
         if t < total_steps - 1:
@@ -28,7 +29,8 @@ def detect_collision(path1, path2):
 
             # check if the robots swap their location -> edge conflict
             if loc1 == next_loc2 and loc2 == next_loc1:
-                return {'loc': [next_loc1, next_loc2], 'timestep': t + 1}
+                return {'loc': [next_loc2, next_loc1], 'timestep': t + 1}
+                # return [{'loc': [loc1, next_loc1], 'timestep': t + 1}, {'loc': [loc2, next_loc2], 'timestep': t + 1}]
 
 
 def detect_collisions(paths):
@@ -43,10 +45,13 @@ def detect_collisions(paths):
     for i in range(len(paths)):
         for j in range(i + 1, len(paths)):
             collision = detect_collision(paths[i], paths[j])
-            collision['a1'] = i;
-            collision['a2'] = j;
 
-            collisions.append(collision)
+            if collision:
+                collision['a1'] = i;
+                collision['a2'] = j;
+
+                collisions.append(collision)
+                # collisions += collision
 
     return collisions
 
@@ -122,6 +127,9 @@ class CBSSolver(object):
     def pop_node(self):
         _, _, id, node = heapq.heappop(self.open_list)
         print("Expand node {}".format(id))
+        # if id > 8:
+        #     print("No solution found")
+        #     return None
         self.num_of_expanded += 1
         return node
 
@@ -154,11 +162,11 @@ class CBSSolver(object):
         self.push_node(root)
 
         # Task 3.1: Testing
-        print(root['collisions'])
-
-        # Task 3.2: Testing
-        for collision in root['collisions']:
-            print(standard_splitting(collision))
+        # print(root['collisions'])
+        #
+        # # Task 3.2: Testing
+        # for collision in root['collisions']:
+        #     print(standard_splitting(collision))
 
         ##############################
         # Task 3.3: High-Level Search
@@ -173,18 +181,28 @@ class CBSSolver(object):
             curr = self.pop_node()
 
             print(len(curr['constraints']))
+            print(curr['paths'])
+            print(curr['cost'])
+            print(curr['collisions'])
+            print(curr['constraints'])
 
-            if curr['collisions'] == []:
+            if not curr['collisions']:
                 return curr['paths'] # curr is a goal node
 
             collision = curr['collisions'][0]
             constraints = standard_splitting(collision)
+            #
+            print('generated constraints' + str(constraints))
+
+            print('=====================')
 
             for constraint in constraints:
+                new_constraints = curr['constraints'].copy()
                 child = {'cost': 0,
-                         'constraints': curr['constraints'] + [constraint] if constraint not in curr['constraints'] else curr['constraints'],
-                         'paths': curr['paths'],
+                         'constraints': new_constraints + [constraint] if constraint not in new_constraints else new_constraints,
+                         'paths': curr['paths'].copy(),
                          'collisions': []}
+
                 agent = constraint['agent']
                 path = a_star(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent],
                               agent, child['constraints'])
@@ -195,11 +213,15 @@ class CBSSolver(object):
                     child['cost'] = get_sum_of_cost(child['paths'])
 
                     self.push_node(child)
+                else:
+                    raise BaseException('No solutions')
 
 
-
-        self.print_results(root)
-        return root['paths']
+        # if self.num_of_generated > 8:
+        #     print("No solution found")
+        #     return None
+        # self.print_results(root)
+        # return root['paths']
 
 
     def print_results(self, node):

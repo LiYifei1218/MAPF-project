@@ -186,6 +186,15 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
         for dir in range(5):
             child_loc = move(curr['loc'], dir)
 
+            # print(child_loc)
+            #
+            # print(my_map[child_loc[0]][child_loc[1]])
+
+            # check if the move is within the map
+            if child_loc[0] < 0 or child_loc[0] >= len(my_map) \
+               or child_loc[1] < 0 or child_loc[1] >= len(my_map[0]):
+                continue
+
             if my_map[child_loc[0]][child_loc[1]]:
                 continue
 
