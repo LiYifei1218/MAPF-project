@@ -69,7 +69,8 @@ def standard_splitting(collision):
     # edge collision
     else:
         constraints.append({'agent': collision['a1'], 'loc': collision['loc'], 'timestep': collision['timestep']})
-        constraints.append({'agent': collision['a2'], 'loc': collision['loc'].reverse(), 'timestep': collision['timestep']})
+        rev = list(reversed(collision['loc']))
+        constraints.append({'agent': collision['a2'], 'loc': rev, 'timestep': collision['timestep']})
 
     return constraints
 
@@ -167,6 +168,35 @@ class CBSSolver(object):
         #             3. Otherwise, choose the first collision and convert to a list of constraints (using your
         #                standard_splitting function). Add a new child node to your open list for each constraint
         #           Ensure to create a copy of any objects that your child nodes might inherit
+
+        while len(self.open_list) > 0:
+            curr = self.pop_node()
+
+            print(len(curr['constraints']))
+
+            if curr['collisions'] == []:
+                return curr['paths'] # curr is a goal node
+
+            collision = curr['collisions'][0]
+            constraints = standard_splitting(collision)
+
+            for constraint in constraints:
+                child = {'cost': 0,
+                         'constraints': curr['constraints'] + [constraint] if constraint not in curr['constraints'] else curr['constraints'],
+                         'paths': curr['paths'],
+                         'collisions': []}
+                agent = constraint['agent']
+                path = a_star(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent],
+                              agent, child['constraints'])
+
+                if len(path) > 0:
+                    child['paths'][agent] = path
+                    child['collisions'] = detect_collisions(child['paths'])
+                    child['cost'] = get_sum_of_cost(child['paths'])
+
+                    self.push_node(child)
+
+
 
         self.print_results(root)
         return root['paths']

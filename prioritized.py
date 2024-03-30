@@ -34,7 +34,7 @@ class PrioritizedPlanningSolver(object):
         # # 1.3
         # constraints.append({'agent': 1, 'loc': [(1, 2), (1, 3)], 'timestep': 1})
         # # 1.4
-        # constraints.append({'agent': 0, 'loc': [(1, 5)], 'timestep': 10})
+        constraints.append({'agent': 0, 'loc': [(1, 5)], 'timestep': 10})
         # 1.5 set of constraints to find collision-free paths
         # constraints.append({'agent': 1, 'loc': [(1, 3), (1, 2)], 'timestep': 2})
         # constraints.append({'agent': 1, 'loc': [(1, 3), (1, 4)], 'timestep': 2})

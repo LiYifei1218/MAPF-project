@@ -149,10 +149,17 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
 
     # the earliest timestep the agent can reach the goal
     # 1.4 if there is a goal constraint, earliest_goal_timestep is the timestep of the constraint
-    if any([c['loc'][0] == goal_loc for c in constraints]):
-        earliest_goal_timestep = min([c['timestep'] for c in constraints if c['loc'][0] == goal_loc])
-    else:
-        earliest_goal_timestep = 0
+    # if any([(c['loc'][0] == goal_loc) for c in constraints]):
+    #     earliest_goal_timestep = min([c['timestep'] for c in constraints if c['loc'][0] == goal_loc])
+    # else:
+    #     earliest_goal_timestep = 0
+
+    earliest_goal_timestep = 0
+    for constraint in constraints:
+        if constraint['agent'] == agent and constraint['loc'][0] == goal_loc:
+            earliest_goal_timestep = constraint['timestep']
+            break
+
 
     # 2.4 upper bound on for path length
     max_path_length = compute_max_path_length(my_map)
