@@ -3,6 +3,21 @@ import heapq
 import random
 from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
 
+def is_equal_constraint(constraint1, constraint2):
+    """Check if two constraints are equal."""
+    return (constraint1['agent'] == constraint2['agent'] and
+            constraint1['loc'] == constraint2['loc'] and
+            constraint1['timestep'] == constraint2['timestep'])
+
+def add_unique_constraint(constraints, new_constraint):
+    """Add a new constraint to the list if it is unique."""
+    for existing_constraint in constraints:
+        if is_equal_constraint(existing_constraint, new_constraint):
+            # The new constraint is not unique, so we don't add it.
+            return constraints
+    # If we get here, the new constraint is unique, and we can add it.
+    constraints.append(new_constraint)
+    return constraints
 
 def detect_collision(path1, path2):
     ##############################
@@ -182,7 +197,7 @@ class CBSSolver(object):
 
             print(len(curr['constraints']))
             print(curr['paths'])
-            print(curr['cost'])
+            print('Cost: ' + str(curr['cost']))
             print(curr['collisions'])
             print(curr['constraints'])
 
@@ -198,8 +213,9 @@ class CBSSolver(object):
 
             for constraint in constraints:
                 new_constraints = curr['constraints'].copy()
+                new_constraints = add_unique_constraint(new_constraints, constraint)
                 child = {'cost': 0,
-                         'constraints': new_constraints + [constraint] if constraint not in new_constraints else new_constraints,
+                         'constraints': new_constraints,
                          'paths': curr['paths'].copy(),
                          'collisions': []}
 
@@ -207,7 +223,7 @@ class CBSSolver(object):
                 path = a_star(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent],
                               agent, child['constraints'])
 
-                if len(path) > 0:
+                if path:
                     child['paths'][agent] = path
                     child['collisions'] = detect_collisions(child['paths'])
                     child['cost'] = get_sum_of_cost(child['paths'])
