@@ -3,11 +3,35 @@ import heapq
 import random
 from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
 
+DEBUG = False
+
+def paths_violate_constraint(constraint, paths):
+    # compute the list of agents that violates the positive constraints
+    if len(constraint['loc']) == 1:
+        return vertex_check(constraint, paths)
+    else:
+        return edge_check(constraint, paths)
+
+def vertex_check(constraint, paths):
+    agents_violate = []
+    for agent in range(len(paths)):
+        if constraint['loc'][0] == get_location(paths[agent], constraint['timestep']):
+            agents_violate.append(agent)
+    return agents_violate
+
+def edge_check(constraint, paths):
+    agents_violate = []
+    for agent in range(len(paths)):
+        loc = [get_location(paths[agent], constraint['timestep'] - 1), get_location(paths[agent], constraint['timestep'])]
+        if loc == constraint['loc'] or constraint['loc'][0] == loc[0] or constraint['loc'][1] == loc[1]:
+            agents_violate.append(agent)
+    return agents_violate
+
 def is_equal_constraint(constraint1, constraint2):
     """Check if two constraints are equal."""
     return (constraint1['agent'] == constraint2['agent'] and
             constraint1['loc'] == constraint2['loc'] and
-            constraint1['timestep'] == constraint2['timestep'])
+            constraint1['timestep'] == constraint2['timestep']) and (constraint1['positive'] == constraint2['positive'])
 
 def add_unique_constraint(constraints, new_constraint):
     """Add a new constraint to the list if it is unique."""
@@ -62,8 +86,8 @@ def detect_collisions(paths):
             collision = detect_collision(paths[i], paths[j])
 
             if collision:
-                collision['a1'] = i;
-                collision['a2'] = j;
+                collision['a1'] = i
+                collision['a2'] = j
 
                 collisions.append(collision)
                 # collisions += collision
@@ -106,8 +130,23 @@ def disjoint_splitting(collision):
     #                          specified edge at the specified timestep
     #           Choose the agent randomly
 
-    pass
+    constraints = []
+    random_agent = random.choice([collision['a1'], collision['a2']])
+    # vertex collision
+    if len(collision['loc']) == 1:
+        # positive constraint
+        constraints.append({'agent': random_agent, 'loc': collision['loc'], 'timestep': collision['timestep'], 'positive': True, 'is_goal': False})
+        # negative constraint
+        constraints.append({'agent': random_agent, 'loc': collision['loc'], 'timestep': collision['timestep'], 'positive': False, 'is_goal': False})
 
+    # edge collision
+    else:
+        # positive constraint
+        constraints.append({'agent': random_agent, 'loc': collision['loc'], 'timestep': collision['timestep'], 'positive': True, 'is_goal': False})
+        # negative constraint
+        constraints.append({'agent': random_agent, 'loc': collision['loc'], 'timestep': collision['timestep'], 'positive': False, 'is_goal': False})
+
+    return constraints
 
 class CBSSolver(object):
     """The high-level search of CBS."""
@@ -202,16 +241,18 @@ class CBSSolver(object):
             print(curr['constraints'])
 
             if not curr['collisions']:
+                self.print_results(curr)
                 return curr['paths'] # curr is a goal node
 
             collision = curr['collisions'][0]
-            constraints = standard_splitting(collision)
-            #
+            #constraints = standard_splitting(collision)
+            constraints = disjoint_splitting(collision)
             print('generated constraints' + str(constraints))
 
             print('=====================')
 
             for constraint in constraints:
+                skip = False
                 new_constraints = curr['constraints'].copy()
                 new_constraints = add_unique_constraint(new_constraints, constraint)
                 child = {'cost': 0,
@@ -225,19 +266,31 @@ class CBSSolver(object):
 
                 if path:
                     child['paths'][agent] = path
-                    child['collisions'] = detect_collisions(child['paths'])
-                    child['cost'] = get_sum_of_cost(child['paths'])
 
-                    self.push_node(child)
+                    if constraint['positive']:
+                        violating_agents = paths_violate_constraint(constraint, child['paths'])
+                        for a in violating_agents:
+                            constraint_new = constraint.copy()
+                            constraint_new['agent'] = a
+                            constraint_new['positive'] = False
+                            child['constraints'] = add_unique_constraint(child['constraints'], constraint_new)
+                            agent_path = a_star(self.my_map, self.starts[a], self.goals[a], self.heuristics[a],
+                                                a, child['constraints'])
+
+                            if not agent_path:
+                                skip = True
+                                break
+                            else:
+                                child['paths'][a] = agent_path
+
+                    if not skip:
+                        child['collisions'] = detect_collisions(child['paths'])
+                        child['cost'] = get_sum_of_cost(child['paths'])
+                        self.push_node(child)
                 else:
                     raise BaseException('No solutions')
 
 
-        # if self.num_of_generated > 8:
-        #     print("No solution found")
-        #     return None
-        # self.print_results(root)
-        # return root['paths']
 
 
     def print_results(self, node):
