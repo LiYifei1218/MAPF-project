@@ -62,6 +62,26 @@ def build_constraint_table(constraints, agent):
 
     return agent_constraints
 
+def build_constraint_table_disjoint(constraints, agent):
+
+    agent_constraints = []
+
+    # sort constraints by time step
+    constraints.sort(key=lambda x: x['timestep'])
+
+    for constraint in constraints:
+        # add negative constraints for current agent as usual
+        if constraint['agent'] == agent and not constraint['positive']:
+            agent_constraints.append(constraint)
+        # add positive as usual for now
+        elif constraint['agent'] == agent and constraint['positive']:
+            agent_constraints.append(constraint)
+        # if there is a positive constraint for another agent, add a negative constraint for the current agent
+        elif constraint['agent'] != agent and constraint['positive']:
+            agent_constraints.append({'agent': agent, 'loc': constraint['loc'], 'timestep': constraint['timestep'], 'positive': False})
+
+    return agent_constraints
+
 
 
 def get_location(path, time):
@@ -108,7 +128,45 @@ def is_constrained(curr_loc, next_loc, next_time, constraint_table):
 
     return False
 
+def is_constrained_disjoint(curr_loc, next_loc, next_time, constraint_table):
+    for constraint in constraint_table:
+        if constraint['timestep'] == next_time:
 
+            # positive constraint
+            if constraint['positive']:
+                # edge constraint
+                if len(constraint['loc']) == 2:
+                    # the given agent must travel from curr_loc to next_loc at next_time
+                    # return True if the agent is not moving from curr_loc to next_loc
+                    if curr_loc != constraint['loc'][0] or next_loc != constraint['loc'][1]:
+                        return True
+                # vertex constraint
+                else:
+                    # the given agent must be at next_loc at next_time
+                    # return True if the agent is not at next_loc
+                    if next_loc != constraint['loc'][0]:
+                        return True
+            # negative constraint
+            else:
+                # edge constraint
+                if len(constraint['loc']) == 2:
+                    # the given agent must not travel from curr_loc to next_loc at next_time
+                    # return True if the agent is moving from curr_loc to next_loc
+                    if curr_loc == constraint['loc'][0] and next_loc == constraint['loc'][1]:
+                        return True
+                # vertex constraint
+                else:
+                    # the given agent must not be at next_loc at next_time
+                    # return True if the agent is at next_loc
+                    if next_loc == constraint['loc'][0]:
+                        return True
+
+
+        elif next_time > constraint['timestep']:
+            if constraint.get('at_goal', False) and next_loc == constraint['loc'][0]:
+                return True
+
+    return False
 
 def push_node(open_list, node):
     heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node['time_step'], node))
@@ -166,8 +224,8 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
 
     h_value = h_values[start_loc]
 
-    constraint_table = build_constraint_table(constraints, agent)
-
+    # constraint_table = build_constraint_table(constraints, agent)
+    constraint_table = build_constraint_table_disjoint(constraints, agent)
     root = {'loc': start_loc, 'g_val': 0, 'h_val': h_value, 'parent': None, 'time_step': 0}
     push_node(open_list, root)
     closed_list[(root['loc'], 0)] = root
@@ -199,7 +257,9 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
                 continue
 
             # check if the move violates any constraint
-            if is_constrained(curr['loc'], child_loc, curr['time_step'] + 1, constraint_table):
+            # if is_constrained(curr['loc'], child_loc, curr['time_step'] + 1, constraint_table):
+            #     continue
+            if is_constrained_disjoint(curr['loc'], child_loc, curr['time_step'] + 1, constraint_table):
                 continue
 
             child = {'loc': child_loc,
