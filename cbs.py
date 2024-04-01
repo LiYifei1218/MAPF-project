@@ -3,29 +3,59 @@ import heapq
 import random
 from single_agent_planner import compute_heuristics, a_star, get_location, get_sum_of_cost
 
-DEBUG = False
+def paths_violate_constraint(paths, constraint):
+    violating_agents = []
+    constraint_agent = constraint['agent']
+    constraint_time = constraint['timestep']
 
-def paths_violate_constraint(constraint, paths):
-    # compute the list of agents that violates the positive constraints
-    if len(constraint['loc']) == 1:
-        return vertex_check(constraint, paths)
-    else:
-        return edge_check(constraint, paths)
-
-def vertex_check(constraint, paths):
-    agents_violate = []
+    # for each agent
     for agent in range(len(paths)):
-        if constraint['loc'][0] == get_location(paths[agent], constraint['timestep']):
-            agents_violate.append(agent)
-    return agents_violate
+        # positive constraint
+        if constraint['positive']:
+            # vertex constraint
+            if len(constraint['loc']) == 1:
+                # same agent in constraint
+                if agent == constraint_agent:
+                    # if the constraint time step does not exist in the path
+                    if constraint_time >= len(paths[agent]):
+                        violating_agents.append(agent)
+                        break
+                    elif paths[agent][constraint_time] != constraint['loc'][0]:
+                        violating_agents.append(agent)
+                        break
+                # other agent in constraint
+                else:
+                    # if the constraint time step does not exist in the path
+                    if constraint_time >= len(paths[agent]):
+                        continue
+                    if paths[agent][constraint_time] == constraint['loc'][0]:
+                        violating_agents.append(agent)
+                        break
 
-def edge_check(constraint, paths):
-    agents_violate = []
-    for agent in range(len(paths)):
-        loc = [get_location(paths[agent], constraint['timestep'] - 1), get_location(paths[agent], constraint['timestep'])]
-        if loc == constraint['loc'] or constraint['loc'][0] == loc[0] or constraint['loc'][1] == loc[1]:
-            agents_violate.append(agent)
-    return agents_violate
+            # edge constraint
+            elif len(constraint['loc']) == 2:
+                # same agent in constraint
+                if agent == constraint_agent:
+                    # if the constraint time step does not exist in the path
+                    if constraint_time >= len(paths[agent]) - 1:
+                        violating_agents.append(agent)
+                        break
+
+                    elif paths[agent][constraint_time - 1] != constraint['loc'][0] or paths[agent][constraint_time] != \
+                            constraint['loc'][1]:
+                        violating_agents.append(agent)
+                        break
+
+                # other agent in constraint
+                else:
+                    # if the constraint time step does not exist in the path
+                    if constraint_time >= len(paths[agent]) - 1:
+                        continue
+                    if paths[agent][constraint_time - 1] == constraint['loc'][0] and paths[agent][constraint_time] == \
+                            constraint['loc'][1]:
+                        violating_agents.append(agent)
+                        break
+    return violating_agents
 
 def is_equal_constraint(constraint1, constraint2):
     """Check if two constraints are equal."""
@@ -268,7 +298,7 @@ class CBSSolver(object):
                     child['paths'][agent] = path
 
                     if constraint['positive']:
-                        violating_agents = paths_violate_constraint(constraint, child['paths'])
+                        violating_agents = paths_violate_constraint(child['paths'], constraint)
                         for a in violating_agents:
                             constraint_new = constraint.copy()
                             constraint_new['agent'] = a
