@@ -317,8 +317,7 @@ class CBSSolver(object):
                         child['collisions'] = detect_collisions(child['paths'])
                         child['cost'] = get_sum_of_cost(child['paths'])
                         self.push_node(child)
-                else:
-                    raise BaseException('No solutions')
+
 
 
 
